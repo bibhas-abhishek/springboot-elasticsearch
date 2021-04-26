@@ -1,7 +1,12 @@
-package ai.test.elasticsearch.controller;
+package paytm.test.elasticsearch.controller;
 
-import ai.test.elasticsearch.entity.User;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
@@ -27,39 +32,37 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-/**
- * Created by suman.das on 6/20/19.
- */
+import paytm.test.elasticsearch.entity.User;
+
 @RestController()
 @RequestMapping("/users")
 public class UserController {
+
     @Autowired
     private RestHighLevelClient client;
 
     @PostMapping("/index")
     public void index() throws IOException {
         CreateIndexRequest request = new CreateIndexRequest("users");
-        request.settings(Settings.builder()
-                .put("index.number_of_shards", 1)
-                .put("index.number_of_replicas", 2)
-        );
+        request.settings(Settings.builder().put("index.number_of_shards", 1).put("index.number_of_replicas", 1));
         Map<String, Object> message = new HashMap<>();
         message.put("type", "text");
 
-        Map<String,Object> keyWordMap = new HashMap<>();
-        Map<String,Object> keyWordValueMap = new HashMap<>();
-        keyWordValueMap.put("type","keyword");
-        keyWordValueMap.put("ignore_above",256);
-        keyWordMap.put("keyword",keyWordValueMap);
+        Map<String, Object> keyWordMap = new HashMap<>();
+        Map<String, Object> keyWordValueMap = new HashMap<>();
+        keyWordValueMap.put("type", "keyword");
+        keyWordValueMap.put("ignore_above", 256);
+        keyWordMap.put("keyword", keyWordValueMap);
         message.put("fields", keyWordMap);
 
         Map<String, Object> properties = new HashMap<>();
@@ -72,9 +75,9 @@ public class UserController {
 
         GetIndexRequest getIndexRequest = new GetIndexRequest("users");
         boolean exists = client.indices().exists(getIndexRequest, RequestOptions.DEFAULT);
-        if(!exists){
+        if (!exists) {
             CreateIndexResponse indexResponse = client.indices().create(request, RequestOptions.DEFAULT);
-            System.out.println("response id: "+indexResponse.index());
+            System.out.println("response id: " + indexResponse.index());
         }
     }
 
@@ -84,7 +87,7 @@ public class UserController {
         request.id(user.getUserId());
         request.source(new ObjectMapper().writeValueAsString(user), XContentType.JSON);
         IndexResponse indexResponse = client.index(request, RequestOptions.DEFAULT);
-        System.out.println("response id: "+indexResponse.getId());
+        System.out.println("response id: " + indexResponse.getId());
         return indexResponse.getResult().name();
     }
 
@@ -93,15 +96,15 @@ public class UserController {
         IndexRequest request = new IndexRequest("users");
         request.id(user.getUserId());
         request.source(new ObjectMapper().writeValueAsString(user), XContentType.JSON);
-        client.indexAsync(request, RequestOptions.DEFAULT,listener);
+        client.indexAsync(request, RequestOptions.DEFAULT, listener);
         System.out.println("Request submitted !!!");
     }
 
     @GetMapping("/{id}")
     public User read(@PathVariable final String id) throws IOException {
-        GetRequest getRequest = new GetRequest("users",id);
+        GetRequest getRequest = new GetRequest("users", id);
         GetResponse getResponse = client.get(getRequest, RequestOptions.DEFAULT);
-        User user = new ObjectMapper().readValue(getResponse.getSourceAsString(),User.class);
+        User user = new ObjectMapper().readValue(getResponse.getSourceAsString(), User.class);
         return user;
     }
 
@@ -114,8 +117,8 @@ public class UserController {
         searchRequest.source(searchSourceBuilder);
         searchSourceBuilder.size(5);
         SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-        for(SearchHit searchHit : searchResponse.getHits().getHits()){
-            User user = new ObjectMapper().readValue(searchHit.getSourceAsString(),User.class);
+        for (SearchHit searchHit : searchResponse.getHits().getHits()) {
+            User user = new ObjectMapper().readValue(searchHit.getSourceAsString(), User.class);
             users.add(user);
         }
         return users;
@@ -124,10 +127,8 @@ public class UserController {
     @GetMapping("/name/{field}")
     public List<User> searchByName(@PathVariable final String field) throws IOException {
         List<User> users = new ArrayList<>();
-        QueryBuilder matchQueryBuilder = QueryBuilders.matchQuery("name", field)
-                .fuzziness(Fuzziness.AUTO)
-                .prefixLength(2)
-                .maxExpansions(10);
+        QueryBuilder matchQueryBuilder =
+                QueryBuilders.matchQuery("name", field).fuzziness(Fuzziness.AUTO).prefixLength(2).maxExpansions(10);
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         sourceBuilder.query(matchQueryBuilder);
         sourceBuilder.from(0);
@@ -137,28 +138,28 @@ public class UserController {
         SearchRequest searchRequest = new SearchRequest();
         searchRequest.source(sourceBuilder);
 
-        SearchResponse searchResponse = client.search(searchRequest,RequestOptions.DEFAULT);
-        for(SearchHit searchHit : searchResponse.getHits().getHits()){
-            User user = new ObjectMapper().readValue(searchHit.getSourceAsString(),User.class);
+        SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+        for (SearchHit searchHit : searchResponse.getHits().getHits()) {
+            User user = new ObjectMapper().readValue(searchHit.getSourceAsString(), User.class);
             users.add(user);
         }
         return users;
     }
 
-    @RequestMapping(value = "/",method =RequestMethod.PUT)
+    @RequestMapping(value = "/", method = RequestMethod.PUT)
     public String update(@RequestBody User user) throws IOException {
-        UpdateRequest updateRequest = new UpdateRequest("users",user.getUserId());
+        UpdateRequest updateRequest = new UpdateRequest("users", user.getUserId());
         updateRequest.doc(new ObjectMapper().writeValueAsString(user), XContentType.JSON);
-        UpdateResponse updateResponse = client.update(updateRequest,RequestOptions.DEFAULT);
+        UpdateResponse updateResponse = client.update(updateRequest, RequestOptions.DEFAULT);
         System.out.println(updateResponse.getGetResult());
 
         return updateResponse.status().name();
     }
 
-    @RequestMapping(value = "/{id}",method = RequestMethod.DELETE)
+    @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
     public String delete(@PathVariable final String id) throws IOException {
-        DeleteRequest request = new DeleteRequest("users",id);
-        DeleteResponse deleteResponse = client.delete(request,RequestOptions.DEFAULT);
+        DeleteRequest request = new DeleteRequest("users", id);
+        DeleteResponse deleteResponse = client.delete(request, RequestOptions.DEFAULT);
         return deleteResponse.getResult().name();
     }
 
@@ -170,10 +171,7 @@ public class UserController {
 
         @Override
         public void onFailure(Exception e) {
-            System.out.print(" Document creation failed !!!"+ e.getMessage());
+            System.out.print(" Document creation failed !!!" + e.getMessage());
         }
     };
-
-
-
 }

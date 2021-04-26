@@ -1,21 +1,22 @@
-package ai.test.elasticsearch.entity;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
+package paytm.test.elasticsearch.entity;
 
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Created by suman.das on 6/19/19.
- */
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class User {
-    private String userId;
-    private String name;
-    private Date creationDate = new Date();
+
+    private String              userId;
+
+    private String              name;
+
+    private Date                creationDate = new Date();
+
     private Map<String, String> userSettings = new HashMap<>();
 
     public String getUserId() {
