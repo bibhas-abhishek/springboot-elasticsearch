@@ -35,7 +35,7 @@ public class ElasticConfig {
     public RestHighLevelClient client() {
         System.out.println("host:" + host + "port:" + port);
         final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-        credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials("elastic", "Fractal123456"));
+        // credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials("elastic", "Fractal123456"));
         RestClientBuilder builder = RestClient.builder(new HttpHost(host, port, "http")).setHttpClientConfigCallback(
                 httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
         builder.setRequestConfigCallback(
